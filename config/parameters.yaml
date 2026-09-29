@@ -1,0 +1,147 @@
+# =============================================================================
+#  Parameters for "Multivalent Surface Search Dynamics Shape Bacteriophage
+#  Adsorption Efficiency: A Stochastic Model of Tail Fiber Optimization"
+# =============================================================================
+#
+#  This file is the ONLY place where parameter values live.
+#
+#  * `model` is the single default parameter set used throughout the paper
+#    (Table 1). Every figure starts from it.
+#  * Each entry under `figures` lists only what that figure changes
+#    relative to `model` (for example, a sweep over N or k_off).
+#  * Any value can be overridden from the command line without editing this
+#    file, e.g.   python figures/fig4_adsorption_time.py --set model.eta_B=1e-7
+#
+#  Units: all quantities are dimensionless.
+#    time   in units of 1/k_on   (k_on = 1;  1/k_on ~ 1 ms)
+#    length in units of 10 nm    (L = 10  ->  0.1 um patch)
+# =============================================================================
+
+model:
+  k_on: 1.0          # tail fiber attachment rate (per detached fiber)
+  k_off: 0.1         # tail fiber detachment rate (per attached fiber)
+  N: 6               # number of tail fibers
+  r_s: 1.0           # fiber reach: a fiber reattaches at a distance drawn
+                     #   uniformly from [0, r_s] around the COM, inside the
+                     #   angular sector between its attached neighbours
+  r_t: 0.2           # receptor (target) radius; adsorption when COM is within r_t
+  L: 10.0            # side of the periodic L x L surface patch
+  n_targets: 1       # receptors on the patch (random, non-overlapping)
+  eta_B: 1.0e-5      # bulk encounter rate with a new host (1/eta_B = mean bulk search)
+  a_cell: 100.0      # cell radius (1 um); same-cell return probability p_r = a/(a + r_t)
+
+theory:
+  # Effective diffusion constant used in the analytical model (Figs 4, 5, S5):
+  #   D_eff(N) = D0 * (r_s / r_s_ref)^2 * k_on k_off / (k_on + k_off) * N^(-alpha)
+  D0: 0.1            # prefactor, fitted to the simulated D_eff in Fig 1c (r_s = 1)
+  r_s_ref: 1.0
+  alpha: 1.0         # diffusion penalty exponent, D_eff ~ N^-alpha (Fig 1c)
+  # Mean hit time on the periodic patch (Eq. 1 / Supplement Eq. S6):
+  #   <T_h> = L^2 / (2 pi D_eff) * (ln(L / r_t) + C_torus)
+  C_torus: -1.2      # geometric constant fitted to simulations (Supplement S3)
+  # After a complete detachment the phage returns to the same cell with
+  # probability p_r. true: it can then land directly on a receptor (p_l), as in
+  # the simulation and the Supplement derivation of Eq. 5. false: direct landing
+  # only after a bulk search, i.e. (1 - p_r) p_l in the denominator of Eq. 5.
+  direct_landing_after_return: true
+
+thermal:
+  # Thermal exploration radius r_exp (Eq. reff1) and r_eff = max(r_t, r_exp) (Eq. reff)
+  # tau_e = 1 / [(N - n) k_on + n k_off];  kappa = ell / M
+  M: 2               # Gaussian-chain segments per fiber
+  ell_over_rs: 1.414 # fiber length ell = ell_over_rs * r_s
+  D_3d: 40.0         # 3D diffusion constant of the free phage, D = 4 um^2/s (Suppl. S1)
+                     #   in simulation units: 4 um^2/s = 4e4 (10 nm)^2/s = 40 (10 nm)^2 per ms
+
+simulation:
+  n_traj: 5000       # independent trajectories per parameter set (paper default)
+  t_max_msd: 1.0e4   # length of each MSD trajectory
+  t_max_adsorption: 2.0e7   # safety cap for adsorption runs (none reach it)
+  seed: 12345        # base random seed; each trajectory gets seed + index
+  n_workers: 0       # parallel processes (0 = all CPU cores minus one)
+
+# -----------------------------------------------------------------------------
+#  Per-figure settings: only what differs from `model`.
+# -----------------------------------------------------------------------------
+figures:
+
+  fig1:                              # MSD (b) and D_eff vs N (c)
+    msd_k_off: 0.1
+    msd_N: [3, 4, 5, 6, 7, 8, 9, 10]
+    D_k_off: [0.001, 0.01, 0.1]
+    D_N: [3, 4, 5, 6, 7, 8, 9, 10]
+    n_traj: 1000
+    n_points: 2000                   # time points stored per MSD curve
+    n_bootstrap: 20                  # bootstrap MSD curves for the D_eff error bars
+    bootstrap_fraction: 0.1
+
+  fig3:                              # hit-time (a) and detachment-time (b) validation
+    hit_k_off: [0.01, 0.1]
+    hit_N: [3, 4, 5, 6, 7, 8]
+    detach_k_off: [0.1, 1.0]
+    detach_N: [2, 3, 4, 5, 6, 7, 8]
+    n_traj: 1000
+
+  fig4:                              # adsorption-time distribution (a), <T_ads>(N) (b), <T_tot>(N) (c, d)
+    dist_N: 6
+    dist_k_off: [0.1, 1.0]
+    mean_k_off: [0.01, 0.1]
+    mean_N: [3, 4, 5, 6, 7, 8]
+    n_traj: 2000
+    theory_k_off_over_k_on: [0.1, 1.0, 10.0]
+    theory_N_max: 19
+    eta_B_high_density: 1.0e-5
+    eta_B_low_density: 1.0e-9
+
+  fig5:                              # optimal N* vs k_off/k_on
+    k_off: [0.1, 1.0, 10.0]
+    ratio_min: 1.0e-4                # k_off/k_on range (log-spaced)
+    ratio_max: 1.0e+2
+    n_ratio: 20
+    N_max: 20
+    eta_B_high_density: 1.0e-5
+    eta_B_low_density: 1.0e-9
+
+  fig6:                              # fixed r_t vs thermal r_eff, for two fiber reaches
+    r_s: [2.0, 10.0]
+    N: [3, 4, 5, 6, 7, 8]
+    L: 20.0
+    n_traj: 2000
+
+  figS1:                             # r_exp in physical units (T4-like phage)
+    D_um2_per_s: 4.0
+    tau_e_s: 1.0e-3                  # divided by N in the calculation: tau_e = tau_e_s / N
+    N: 6
+    ell_nm: 150.0
+    M: [2, 6, 10]
+    n_range: [1, 14]
+    ell_range_nm: [10, 200]
+
+  figS2:                             # distributions behind Fig 6 (violin plots)
+    r_s: [1.0, 2.0, 10.0]
+    N: [3, 4, 5, 6, 7, 8]
+    L: 20.0
+    n_traj: 2000
+
+  figS3:                             # trade-off due to r_s
+    D_r_s: [0.02, 0.2, 2.0]
+    D_N: [3, 4, 5, 6, 7, 8, 9, 10]
+    dist_r_s: [1.0, 2.0, 10.0]
+    n_traj: 1000
+
+  figS4:                             # surface exploration on an m x m lattice
+    k_off: 0.01
+    r_s: [0.2, 2.0]
+    N: [2, 3, 4, 5, 6, 7, 8, 9, 10]
+    m: 50
+    t_window: 2000.0
+    n_survivors: 500
+
+  figS5:                             # global vs local criteria for adding a fiber
+    k_off: 1.0
+    ratio_min: 1.0e-4
+    ratio_max: 1.0e+2
+    n_ratio: 20
+    M_max: 10
+    eta_B_high_density: 1.0e-5
+    eta_B_low_density: 1.0e-9
