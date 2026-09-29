@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+output/*
+data/simulated/*
+.DS_Store
+!output/.gitkeep
+!data/simulated/.gitkeep
